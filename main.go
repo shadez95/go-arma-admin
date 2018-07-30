@@ -97,6 +97,8 @@ func main() {
 		fmt.Println("Starting server...")
 
 		router := setupRouter()
+		SetupRoutesUser(router, "/users")
+
 		// Listen and Server in 0.0.0.0:8080
 		router.Run(":8080")
 
