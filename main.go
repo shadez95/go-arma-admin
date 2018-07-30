@@ -16,15 +16,15 @@ var DB = make(map[string]string)
 func setupRouter() *gin.Engine {
 	// Disable Console Color
 	// gin.DisableConsoleColor()
-	r := gin.Default()
+	router := gin.Default()
 
 	// Ping test
-	r.GET("/ping", func(c *gin.Context) {
+	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 
 	// Get user value
-	r.GET("/user/:name", func(c *gin.Context) {
+	router.GET("/user/:name", func(c *gin.Context) {
 		user := c.Params.ByName("name")
 		value, ok := DB[user]
 		if ok {
@@ -41,7 +41,7 @@ func setupRouter() *gin.Engine {
 	//	  "foo":  "bar",
 	//	  "manu": "123",
 	//}))
-	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
+	authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
 		"foo":  "bar", // user:foo password:bar
 		"manu": "123", // user:manu password:123
 	}))
@@ -60,10 +60,10 @@ func setupRouter() *gin.Engine {
 		}
 	})
 
-	return r
+	return router
 }
 
-func credentials() (string, string) {
+func createsuperuser() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter Username: ")
@@ -96,13 +96,13 @@ func main() {
 		fmt.Println("No superuser to create")
 		fmt.Println("Starting server...")
 
-		r := setupRouter()
+		router := setupRouter()
 		// Listen and Server in 0.0.0.0:8080
-		r.Run(":8080")
+		router.Run(":8080")
 
 	} else {
 
-		username, password := credentials()
+		username, password := createsuperuser()
 
 		if username == "" {
 			fmt.Println()
