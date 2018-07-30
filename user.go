@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -60,4 +62,40 @@ func (u *User) Delete(user User) {
 	defer db.Close()
 
 	db.Delete(&user)
+}
+
+func getAllUsers(c *gin.Context) {
+	db, err := gorm.Open("sqlite3", "db.sqlite3")
+	if err != nil {
+		panic("Failed to connect to database")
+	}
+	defer db.Close()
+
+	var users []User
+	db.Find(&users)
+
+	c.JSON(200, gin.H{"data": users})
+}
+
+func getUser(c *gin.Context) {
+	db, err := gorm.Open("sqlite3", "db.sqlite3")
+	if err != nil {
+		panic("Failed to connect to database")
+	}
+	defer db.Close()
+
+	var user User
+	db.Where("id = ?", c.Param("id")).First(&user)
+
+	c.JSON(200, gin.H{"data": user})
+}
+
+// SetupRoutesUser Sets up routes for user model
+func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
+	usersRoute := router.Group(uri)
+
+	usersRoute.GET("/", getAllUsers)
+	usersRoute.GET("/:id", getUser)
+
+	return usersRoute
 }
