@@ -94,7 +94,7 @@ func getUser(c *gin.Context) {
 func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute := router.Group(uri)
 
-	usersRoute.GET("/", getAllUsers)
+	usersRoute.GET("", getAllUsers)
 	usersRoute.GET("/:id", getUser)
 
 	return usersRoute
