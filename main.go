@@ -27,14 +27,12 @@ func setupRouter() *gin.Engine {
 
 	// Ping test
 	router.GET("/ping", func(c *gin.Context) {
-		fmt.Println(DB)
 		c.String(200, "pong")
 	})
 
 	// Get user value
 	router.GET("/user/:name", func(c *gin.Context) {
 		user := c.Params.ByName("name")
-		fmt.Println(DB)
 		value, ok := DB[user]
 		if ok {
 			c.JSON(200, gin.H{"user": user, "value": value})
