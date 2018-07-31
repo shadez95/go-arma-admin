@@ -5,13 +5,20 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"github.com/subosito/gotenv"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 var DB = make(map[string]string)
+
+func init() {
+	gotenv.Load()
+}
 
 func setupRouter() *gin.Engine {
 	// Disable Console Color
@@ -20,12 +27,14 @@ func setupRouter() *gin.Engine {
 
 	// Ping test
 	router.GET("/ping", func(c *gin.Context) {
+		fmt.Println(DB)
 		c.String(200, "pong")
 	})
 
 	// Get user value
 	router.GET("/user/:name", func(c *gin.Context) {
 		user := c.Params.ByName("name")
+		fmt.Println(DB)
 		value, ok := DB[user]
 		if ok {
 			c.JSON(200, gin.H{"user": user, "value": value})
@@ -87,8 +96,12 @@ func createsuperuser() (string, string) {
 }
 
 func main() {
-
+	port, err := strconv.Atoi(os.Getenv("APP_PORT"))
+	if err != nil {
+		port = 8000
+	}
 	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser")
+	portPtr := flag.Int("port", port, "Set the port. Default: 8000")
 	flag.Parse()
 
 	if !*superuserPtr {
@@ -99,8 +112,9 @@ func main() {
 		router := setupRouter()
 		SetupRoutesUser(router, "/users")
 
+		port := strings.Join([]string{":", strconv.Itoa(*portPtr)}, "")
 		// Listen and Server in 0.0.0.0:8080
-		router.Run(":8080")
+		router.Run(port)
 
 	} else {
 
