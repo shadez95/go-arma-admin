@@ -18,7 +18,7 @@ import (
 )
 
 var dbName = "db.sqlite3"
-var log = logrus.New()
+var Log = logrus.New()
 
 func init() {
 	gotenv.Load()
@@ -90,7 +90,7 @@ func createsuperuser() (string, string) {
 
 func main() {
 	// Logger output to stdout
-	log.Out = os.Stdout
+	Log.Out = os.Stdout
 
 	// Setup port stuff
 	port, err := strconv.Atoi(os.Getenv("APP_PORT"))
@@ -102,8 +102,28 @@ func main() {
 	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser")
 	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations")
 	portPtr := flag.Int("port", port, "Set the port. Default: 8000")
+	logleverPtr := flag.String("loglevel", "info", "Set logging level. Default: warning")
 	flag.Parse()
 
+	// Setup logging level
+	switch *logleverPtr {
+	case "debug":
+		Log.Level = logrus.DebugLevel
+	case "info":
+		Log.Level = logrus.InfoLevel
+	case "warn":
+		Log.Level = logrus.WarnLevel
+	case "error":
+		Log.Level = logrus.ErrorLevel
+	case "fatal":
+		Log.Level = logrus.FatalLevel
+	case "panic":
+		Log.Level = logrus.PanicLevel
+	default:
+		Log.Level = logrus.InfoLevel
+	}
+
+	// Check for migrations flag
 	if *makemigrationsPtr {
 
 		fmt.Println("Making migrations if needed...")
@@ -115,7 +135,7 @@ func main() {
 
 		os.Exit(0)
 
-	} else if *superuserPtr {
+	} else if *superuserPtr { // Check for createsuperuser flag
 
 		username, password := createsuperuser()
 
