@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,6 +32,13 @@ type User struct {
 
 // Create method for a User model
 func (u *User) Create(username string, password string, role string) error {
+
+	Log.WithFields(logrus.Fields{
+		"username": username,
+		"password": password,
+		"role":     role,
+	}).Debug("Creating user...")
+
 	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
 		return err
@@ -106,12 +114,18 @@ func getUser(id string) (*User, error) {
 func findUserByUsername(username string) *User {
 	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		Log.WithFields(logrus.Fields{
+			"username": username,
+		}).Panic("Failed to connect to database")
 	}
 	defer db.Close()
 
 	var user *User
 	db.Where(&User{Username: username}).First(&user)
+
+	Log.WithFields(logrus.Fields{
+		"user": user,
+	}).Debug("findUserByUsername")
 
 	return user
 }

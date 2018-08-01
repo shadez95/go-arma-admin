@@ -6,6 +6,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 var jwtMiddleware jwt.GinJWTMiddleware
@@ -19,6 +20,8 @@ func helloHandler(c *gin.Context) {
 }
 
 func setupAuth(r *gin.Engine) {
+
+	Log.Info("Setting up authentication")
 	// the jwt middleware
 	jwtMiddleware = jwt.GinJWTMiddleware{
 		Realm: "armaadmin",
@@ -40,13 +43,20 @@ func authenticate(userID string, password string, c *gin.Context) (string, bool)
 	// it goes without saying that you'd be going to some form
 	// of persisted storage, rather than doing this
 
+	Log.WithFields(logrus.Fields{
+		"userID":   userID,
+		"password": password,
+	}).Debug("Authenticating user...")
+
 	user := findUserByUsername(userID)
 	pwdMatch := comparePasswords(user.Password, []byte(password))
 
 	if userID == user.Username && pwdMatch {
+		Log.Debug("Passwords matched and returning userID")
 		return userID, true
 	}
 
+	Log.Debug("Passwords do not match")
 	return "", false
 }
 
