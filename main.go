@@ -10,14 +10,28 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/subosito/gotenv"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-var DB = make(map[string]string)
+var dbName = "db.sqlite3"
 
 func init() {
 	gotenv.Load()
+}
+
+func runMigrations() error {
+	db, err := gorm.Open("sqlite3", dbName)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	db.AutoMigrate(&User{})
+
+	return nil
 }
 
 func setupRouter() *gin.Engine {
@@ -30,43 +44,6 @@ func setupRouter() *gin.Engine {
 		c.String(200, "pong")
 	})
 
-	// Get user value
-	router.GET("/user/:name", func(c *gin.Context) {
-		user := c.Params.ByName("name")
-		value, ok := DB[user]
-		if ok {
-			c.JSON(200, gin.H{"user": user, "value": value})
-		} else {
-			c.JSON(200, gin.H{"user": user, "status": "no value"})
-		}
-	})
-
-	// Authorized group (uses gin.BasicAuth() middleware)
-	// Same than:
-	// authorized := r.Group("/")
-	// authorized.Use(gin.BasicAuth(gin.Credentials{
-	//	  "foo":  "bar",
-	//	  "manu": "123",
-	//}))
-	authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
-		"foo":  "bar", // user:foo password:bar
-		"manu": "123", // user:manu password:123
-	}))
-
-	authorized.POST("admin", func(c *gin.Context) {
-		user := c.MustGet(gin.AuthUserKey).(string)
-
-		// Parse JSON
-		var json struct {
-			Value string `json:"value" binding:"required"`
-		}
-
-		if c.Bind(&json) == nil {
-			DB[user] = json.Value
-			c.JSON(200, gin.H{"status": "ok"})
-		}
-	})
-
 	return router
 }
 
@@ -75,6 +52,7 @@ func createsuperuser() (string, string) {
 
 	fmt.Print("Enter Username: ")
 	username, _ := reader.ReadString('\n')
+	username = strings.TrimSuffix(username, "\n")
 
 	fmt.Print("Enter Password: ")
 	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
@@ -87,6 +65,7 @@ func createsuperuser() (string, string) {
 	passwordConfirm := string(bytePasswordConfirm)
 
 	if password == passwordConfirm {
+		fmt.Println("")
 		return username, password
 	}
 
@@ -99,33 +78,57 @@ func main() {
 		port = 8000
 	}
 	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser")
+	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations")
 	portPtr := flag.Int("port", port, "Set the port. Default: 8000")
 	flag.Parse()
 
-	if !*superuserPtr {
+	if *makemigrationsPtr {
 
-		fmt.Println("No superuser to create")
+		fmt.Println("Making migrations if needed...")
+		err := runMigrations()
+		if err != nil {
+			panic("Failed to make migrations")
+		}
+		fmt.Println("Successfully made migrations if needed")
+
+		os.Exit(0)
+
+	} else if *superuserPtr {
+
+		username, password := createsuperuser()
+
+		if username == "" {
+			// fmt.Println()
+			panic("Username cannot be blank")
+			os.Exit(1)
+		}
+
+		fmt.Println("Attempting to create user...")
+		var user *User
+		err := user.Create(username, hashAndSalt([]byte(password)), Superuser)
+		if err != nil {
+			panic("Failed to create user in database")
+			os.Exit(1)
+		}
+		fmt.Println("Superuser created successfully")
+		os.Exit(0)
+
+	} else {
+
 		fmt.Println("Starting server...")
 
 		router := setupRouter()
-		SetupRoutesUser(router, "/users")
+		setupAuth(router)
+
+		router.Use(jwtMiddleware.MiddlewareFunc())
+		{
+			router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
+			SetupRoutesUser(router, "/users")
+		}
 
 		port := strings.Join([]string{":", strconv.Itoa(*portPtr)}, "")
 		// Listen and Server in 0.0.0.0:8080
 		router.Run(port)
 
-	} else {
-
-		username, password := createsuperuser()
-
-		if username == "" {
-			fmt.Println()
-			panic("Failed to create username and password")
-		}
-
-		// TODO: Create user in database when superuser is created
-
-		fmt.Println(username, password)
 	}
-
 }
