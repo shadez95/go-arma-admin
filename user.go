@@ -1,10 +1,12 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -34,9 +36,11 @@ func (u *User) Create(username string, password string, role string) {
 	}
 	defer db.Close()
 
+	hashedPassword := hashAndSalt([]byte(password))
+
 	db.Create(&User{
 		Username: username,
-		Password: password,
+		Password: hashedPassword,
 		Role:     role,
 	})
 }
@@ -118,4 +122,33 @@ func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	})
 
 	return usersRoute
+}
+
+func hashAndSalt(pwd []byte) string {
+
+	// Use GenerateFromPassword to hash & salt pwd.
+	// MinCost is just an integer constant provided by the bcrypt
+	// package along with DefaultCost & MaxCost.
+	// The cost can be any value you want provided it isn't lower
+	// than the MinCost (4)
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MaxCost)
+	if err != nil {
+		log.Println(err)
+	}
+	// GenerateFromPassword returns a byte slice so we need to
+	// convert the bytes to a string and return it
+	return string(hash)
+}
+
+func comparePasswords(hashedPwd string, plainPwd []byte) bool {
+	// Since we'll be getting the hashed password from the DB it
+	// will be a string so we'll need to convert it to a byte slice
+	byteHash := []byte(hashedPwd)
+	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
 }
