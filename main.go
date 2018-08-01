@@ -12,11 +12,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 	"github.com/subosito/gotenv"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 var dbName = "db.sqlite3"
+var log = logrus.New()
 
 func init() {
 	gotenv.Load()
@@ -87,10 +89,16 @@ func createsuperuser() (string, string) {
 }
 
 func main() {
+	// Logger output to stdout
+	log.Out = os.Stdout
+
+	// Setup port stuff
 	port, err := strconv.Atoi(os.Getenv("APP_PORT"))
 	if err != nil {
 		port = 8000
 	}
+
+	// Setup flags
 	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser")
 	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations")
 	portPtr := flag.Int("port", port, "Set the port. Default: 8000")

@@ -54,6 +54,12 @@
   version = "v1.9.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
+  version = "v1.0.6"
+
+[[projects]]
   name = "github.com/subosito/gotenv"
   packages = ["."]
   revision = "69b5b6104433beb2cb9c3ce00bdadf3c7c2d3f34"
@@ -105,6 +111,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ac2045bdb10075fae52f7382d4ff72c54e507d7dec4ade2d72f31412b451e6b7"
+  inputs-digest = "b8f204d14b75c658176a21820e71c9901e6163658f969d4530ee8155d79c83f2"
   solver-name = "gps-cdcl"
   solver-version = 1
