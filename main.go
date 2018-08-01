@@ -54,9 +54,23 @@ func createsuperuser() (string, string) {
 	username, _ := reader.ReadString('\n')
 	username = strings.TrimSuffix(username, "\n")
 
+	if username == "" {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("Username cannot be blank")
+		os.Exit(1)
+	}
+
 	fmt.Print("Enter Password: ")
 	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 	password := string(bytePassword)
+
+	if len(password) <= 6 {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("Password must be at least 6 characters long")
+		os.Exit(1)
+	}
 
 	fmt.Println()
 
@@ -97,18 +111,11 @@ func main() {
 
 		username, password := createsuperuser()
 
-		if username == "" {
-			// fmt.Println()
-			panic("Username cannot be blank")
-			os.Exit(1)
-		}
-
 		fmt.Println("Attempting to create user...")
 		var user *User
 		err := user.Create(username, hashAndSalt([]byte(password)), Superuser)
 		if err != nil {
 			panic("Failed to create user in database")
-			os.Exit(1)
 		}
 		fmt.Println("Superuser created successfully")
 		os.Exit(0)
