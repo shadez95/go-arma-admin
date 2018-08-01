@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/jinzhu/gorm"
 )
 
@@ -64,7 +63,7 @@ func (u *User) Delete(user User) {
 	db.Delete(&user)
 }
 
-func getAllUsers(c *gin.Context) {
+func getAllUsers() []User {
 	db, err := gorm.Open("sqlite3", "db.sqlite3")
 	if err != nil {
 		panic("Failed to connect to database")
@@ -74,28 +73,49 @@ func getAllUsers(c *gin.Context) {
 	var users []User
 	db.Find(&users)
 
-	c.JSON(200, gin.H{"data": users})
+	return users
+	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUser(c *gin.Context) {
+func getUser(id string) *User {
 	db, err := gorm.Open("sqlite3", "db.sqlite3")
 	if err != nil {
 		panic("Failed to connect to database")
 	}
 	defer db.Close()
 
-	var user User
-	db.Where("id = ?", c.Param("id")).First(&user)
+	var user *User
+	db.Where("id = ?", id).First(&user)
 
-	c.JSON(200, gin.H{"data": user})
+	return user
+}
+
+func findUserByUsername(username string) *User {
+	db, err := gorm.Open("sqlite3", "db.sqlite3")
+	if err != nil {
+		panic("Failed to connect to database")
+	}
+	defer db.Close()
+
+	var user *User
+	db.Where(&User{Username: username}).First(&user)
+
+	return user
 }
 
 // SetupRoutesUser Sets up routes for user model
 func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute := router.Group(uri)
 
-	usersRoute.GET("", getAllUsers)
-	usersRoute.GET("/:id", getUser)
+	usersRoute.GET("", func(c *gin.Context) {
+		allUsers := getAllUsers()
+		c.JSON(200, gin.H{"data": allUsers})
+	})
+	usersRoute.GET("/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		user := getUser(id)
+		c.JSON(200, gin.H{"data": user})
+	})
 
 	return usersRoute
 }
