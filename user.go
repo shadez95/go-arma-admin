@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,10 +30,10 @@ type User struct {
 }
 
 // Create method for a User model
-func (u *User) Create(username string, password string, role string) {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+func (u *User) Create(username string, password string, role string) error {
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		return err
 	}
 	defer db.Close()
 
@@ -43,59 +44,67 @@ func (u *User) Create(username string, password string, role string) {
 		Password: hashedPassword,
 		Role:     role,
 	})
+
+	return nil
 }
 
 // Update method for User model
-func (u *User) Update(user User) {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+func (u *User) Update(user User) error {
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		return err
 	}
 	defer db.Close()
 
 	db.Model(&user).Update(user)
+
+	return nil
 }
 
 // Delete method for User model
-func (u *User) Delete(user User) {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+func (u *User) Delete(user User) error {
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		return err
 	}
 	defer db.Close()
 
 	db.Delete(&user)
+
+	return nil
 }
 
-func getAllUsers() []User {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+func getAllUsers() ([]User, error) {
+	var users []User
+
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		return users, err
 	}
 	defer db.Close()
 
-	var users []User
 	db.Find(&users)
 
-	return users
+	return users, nil
 	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUser(id string) *User {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+func getUser(id string) (*User, error) {
+	var user *User
+
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		panic("Failed to connect to database")
+		return user, nil
 	}
 	defer db.Close()
 
-	var user *User
 	db.Where("id = ?", id).First(&user)
 
-	return user
+	return user, nil
 }
 
 func findUserByUsername(username string) *User {
-	db, err := gorm.Open("sqlite3", "db.sqlite3")
+	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
 		panic("Failed to connect to database")
 	}
@@ -112,12 +121,18 @@ func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute := router.Group(uri)
 
 	usersRoute.GET("", func(c *gin.Context) {
-		allUsers := getAllUsers()
+		allUsers, err := getAllUsers()
+		if err != nil {
+			c.JSON(500, gin.H{"data": nil})
+		}
 		c.JSON(200, gin.H{"data": allUsers})
 	})
 	usersRoute.GET("/:id", func(c *gin.Context) {
 		id := c.Param("id")
-		user := getUser(id)
+		user, err := getUser(id)
+		if err != nil {
+			c.JSON(500, gin.H{"data": nil})
+		}
 		c.JSON(200, gin.H{"data": user})
 	})
 
