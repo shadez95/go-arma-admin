@@ -1,6 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +13,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -27,6 +33,45 @@ type User struct {
 	Username  string
 	Password  string
 	Role      string
+}
+
+func createsuperuser() (string, string) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
+	username = strings.TrimSuffix(username, "\n")
+
+	if username == "" {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("Username cannot be blank")
+		os.Exit(1)
+	}
+
+	fmt.Print("Enter Password: ")
+	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
+	password := string(bytePassword)
+
+	if len(password) < 6 {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("Password must be at least 6 characters long")
+		os.Exit(1)
+	}
+
+	fmt.Println()
+
+	fmt.Print("Confirm Password: ")
+	bytePasswordConfirm, _ := terminal.ReadPassword(int(syscall.Stdin))
+	passwordConfirm := string(bytePasswordConfirm)
+
+	if password == passwordConfirm {
+		fmt.Println("")
+		return username, password
+	}
+
+	return "", ""
 }
 
 // Create method for a User model

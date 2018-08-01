@@ -1,23 +1,19 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"os"
 	"strconv"
-	"strings"
-	"syscall"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"github.com/subosito/gotenv"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var dbName = "db.sqlite3"
+
+// Log is the main logger. Use this for logging
 var Log = logrus.New()
 
 func init() {
@@ -34,58 +30,6 @@ func runMigrations() error {
 	db.AutoMigrate(&User{})
 
 	return nil
-}
-
-func setupRouter() *gin.Engine {
-	// Disable Console Color
-	// gin.DisableConsoleColor()
-	router := gin.Default()
-
-	// Ping test
-	router.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
-
-	return router
-}
-
-func createsuperuser() (string, string) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("Enter Username: ")
-	username, _ := reader.ReadString('\n')
-	username = strings.TrimSuffix(username, "\n")
-
-	if username == "" {
-		fmt.Println()
-		fmt.Println()
-		fmt.Println("Username cannot be blank")
-		os.Exit(1)
-	}
-
-	fmt.Print("Enter Password: ")
-	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
-	password := string(bytePassword)
-
-	if len(password) < 6 {
-		fmt.Println()
-		fmt.Println()
-		fmt.Println("Password must be at least 6 characters long")
-		os.Exit(1)
-	}
-
-	fmt.Println()
-
-	fmt.Print("Confirm Password: ")
-	bytePasswordConfirm, _ := terminal.ReadPassword(int(syscall.Stdin))
-	passwordConfirm := string(bytePasswordConfirm)
-
-	if password == passwordConfirm {
-		fmt.Println("")
-		return username, password
-	}
-
-	return "", ""
 }
 
 func main() {
@@ -106,22 +50,7 @@ func main() {
 	flag.Parse()
 
 	// Setup logging level
-	switch *logleverPtr {
-	case "debug":
-		Log.Level = logrus.DebugLevel
-	case "info":
-		Log.Level = logrus.InfoLevel
-	case "warn":
-		Log.Level = logrus.WarnLevel
-	case "error":
-		Log.Level = logrus.ErrorLevel
-	case "fatal":
-		Log.Level = logrus.FatalLevel
-	case "panic":
-		Log.Level = logrus.PanicLevel
-	default:
-		Log.Level = logrus.InfoLevel
-	}
+	configureLogger(*logleverPtr)
 
 	// Check for migrations flag
 	if *makemigrationsPtr {
@@ -153,18 +82,6 @@ func main() {
 
 		Log.Info("Starting server...")
 
-		router := setupRouter()
-		setupAuth(router)
-
-		router.Use(jwtMiddleware.MiddlewareFunc())
-		{
-			router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
-			SetupRoutesUser(router, "/users")
-		}
-
-		port := strings.Join([]string{":", strconv.Itoa(*portPtr)}, "")
-		// Listen and Server in 0.0.0.0:8080
-		router.Run(port)
-
+		runServer(*portPtr)
 	}
 }
