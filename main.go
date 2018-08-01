@@ -99,10 +99,10 @@ func main() {
 	}
 
 	// Setup flags
-	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser")
-	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations")
-	portPtr := flag.Int("port", port, "Set the port. Default: 8000")
-	logleverPtr := flag.String("loglevel", "info", "Set logging level. Default: warning")
+	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser\n")
+	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations\n")
+	portPtr := flag.Int("port", port, "Set the port. Default: 8000\n")
+	logleverPtr := flag.String("loglevel", "info", "Set logging level.\nOptions: debug, info, warn, error, fatal, panic\n")
 	flag.Parse()
 
 	// Setup logging level
@@ -126,12 +126,12 @@ func main() {
 	// Check for migrations flag
 	if *makemigrationsPtr {
 
-		fmt.Println("Making migrations if needed...")
+		Log.Info("Making migrations if needed...")
 		err := runMigrations()
 		if err != nil {
-			panic("Failed to make migrations")
+			Log.Panic("Failed to make migrations")
 		}
-		fmt.Println("Successfully made migrations if needed")
+		Log.Info("Successfully made migrations if needed")
 
 		os.Exit(0)
 
@@ -139,18 +139,19 @@ func main() {
 
 		username, password := createsuperuser()
 
-		fmt.Println("Attempting to create user...")
+		Log.Info("Attempting to create user...")
+
 		var user *User
 		err := user.Create(username, hashAndSalt([]byte(password)), Superuser)
 		if err != nil {
-			panic("Failed to create user in database")
+			Log.Panic("Failed to create user in database")
 		}
-		fmt.Println("Superuser created successfully")
+		Log.Info("Superuser created successfully")
 		os.Exit(0)
 
 	} else {
 
-		fmt.Println("Starting server...")
+		Log.Info("Starting server...")
 
 		router := setupRouter()
 		setupAuth(router)
