@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -45,13 +44,25 @@ func (u *User) Create(username string, password string, role string) error {
 	}
 	defer db.Close()
 
-	hashedPassword := hashAndSalt([]byte(password))
+	hashedPassword := hashAndSalt(password)
 
-	db.Create(&User{
+	Log.WithFields(logrus.Fields{
+		"hashedPassword": hashedPassword,
+	}).Debug("Hashed password")
+
+	user := &User{
 		Username: username,
 		Password: hashedPassword,
 		Role:     role,
-	})
+	}
+
+	Log.WithFields(logrus.Fields{
+		"user.Username": user.Username,
+		"user.Password": user.Password,
+		"user.Role":     user.Role,
+	}).Debug("New user information")
+
+	db.Create(user)
 
 	return nil
 }
@@ -111,7 +122,7 @@ func getUser(id string) (*User, error) {
 	return user, nil
 }
 
-func findUserByUsername(username string) *User {
+func findUserByUsername(username string) User {
 	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
 		Log.WithFields(logrus.Fields{
@@ -120,7 +131,8 @@ func findUserByUsername(username string) *User {
 	}
 	defer db.Close()
 
-	var user *User
+	var user User
+	Log.Info("About to run query...")
 	db.Where(&User{Username: username}).First(&user)
 
 	Log.WithFields(logrus.Fields{
@@ -153,29 +165,36 @@ func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	return usersRoute
 }
 
-func hashAndSalt(pwd []byte) string {
+func hashAndSalt(pwd string) string {
 
 	// Use GenerateFromPassword to hash & salt pwd.
 	// MinCost is just an integer constant provided by the bcrypt
 	// package along with DefaultCost & MaxCost.
 	// The cost can be any value you want provided it isn't lower
 	// than the MinCost (4)
-	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
+	bytePwd := []byte(pwd)
+	hash, err := bcrypt.GenerateFromPassword(bytePwd, bcrypt.DefaultCost)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 	}
 	// GenerateFromPassword returns a byte slice so we need to
 	// convert the bytes to a string and return it
 	return string(hash)
 }
 
-func comparePasswords(hashedPwd string, plainPwd []byte) bool {
+func comparePasswords(hashedPwd string, plainPwd string) bool {
 	// Since we'll be getting the hashed password from the DB it
 	// will be a string so we'll need to convert it to a byte slice
 	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+	bytePlainPwd := []byte(plainPwd)
+
+	Log.WithFields(logrus.Fields{
+		"byteHash": byteHash,
+		"plainPwd": bytePlainPwd,
+	}).Debug("Comparing hash password and plain password")
+	err := bcrypt.CompareHashAndPassword(byteHash, bytePlainPwd)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		return false
 	}
 

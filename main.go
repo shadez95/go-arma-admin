@@ -67,7 +67,7 @@ func createsuperuser() (string, string) {
 	bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 	password := string(bytePassword)
 
-	if len(password) <= 6 {
+	if len(password) < 6 {
 		fmt.Println()
 		fmt.Println()
 		fmt.Println("Password must be at least 6 characters long")
@@ -142,7 +142,7 @@ func main() {
 		Log.Info("Attempting to create user...")
 
 		var user *User
-		err := user.Create(username, hashAndSalt([]byte(password)), Superuser)
+		err := user.Create(username, password, Superuser)
 		if err != nil {
 			Log.Panic("Failed to create user in database")
 		}

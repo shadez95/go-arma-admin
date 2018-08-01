@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt"
@@ -21,7 +22,7 @@ func helloHandler(c *gin.Context) {
 
 func setupAuth(r *gin.Engine) {
 
-	Log.Info("Setting up authentication")
+	Log.Debug("Setting up authentication")
 	// the jwt middleware
 	jwtMiddleware = jwt.GinJWTMiddleware{
 		Realm: "armaadmin",
@@ -45,11 +46,15 @@ func authenticate(userID string, password string, c *gin.Context) (string, bool)
 
 	Log.WithFields(logrus.Fields{
 		"userID":   userID,
-		"password": password,
+		"password": strings.Repeat("x", len(password)),
 	}).Debug("Authenticating user...")
 
 	user := findUserByUsername(userID)
-	pwdMatch := comparePasswords(user.Password, []byte(password))
+	Log.WithFields(logrus.Fields{
+		"user":          user,
+		"user.Username": user.Username,
+	}).Debug("User that was retrieved")
+	pwdMatch := comparePasswords(user.Password, password)
 
 	if userID == user.Username && pwdMatch {
 		Log.Debug("Passwords matched and returning userID")
