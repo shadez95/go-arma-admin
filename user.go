@@ -144,7 +144,7 @@ func getAllUsers() ([]userNoPassword, error) {
 
 	var users []userNoPassword
 	// db.Find(&users)
-	db.Select("id, username, role, created_at, updated_at").Find(&users)
+	db.Table("users").Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
 	// c.JSON(200, gin.H{"data": users})
@@ -165,7 +165,7 @@ func findUserByUsername(username string) (userNoPassword, error) {
 	defer db.Close()
 
 	var user userNoPassword
-	err := db.Where(&User{Username: username}).First(&user).Error
+	err := db.Table("users").Where(&User{Username: username}).First(&user).Error
 
 	Log.WithFields(logrus.Fields{
 		"user": user,
@@ -231,7 +231,6 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 			c.JSON(403, gin.H{"data": "You are not authenticated yet. Please login at /login"})
 		}
 		jwtClaims := jwtClaimsRaw.(jwt.MapClaims)
-		fmt.Println("jwtClaims", jwtClaims)
 		id := jwtClaims["id"].(string)
 		user, _ := findUserByUsername(id)
 		// user, err := getUserByID(id)
