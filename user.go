@@ -203,19 +203,9 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute.GET("", func(c *gin.Context) {
 
 		var users []userNoPassword
-		allUsers, err := getAllUsers()
+		users, err := getAllUsers()
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
-		}
-
-		for _, user := range allUsers {
-			var userNoPass userNoPassword
-			userNoPass.ID = user.ID
-			userNoPass.Username = user.Username
-			userNoPass.Role = user.Role
-			userNoPass.CreatedAt = user.CreatedAt
-			userNoPass.UpdatedAt = user.UpdatedAt
-			users = append(users, userNoPass)
 		}
 
 		c.JSON(200, gin.H{"data": users})
@@ -224,7 +214,6 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 
 	usersRoute.GET("/:id", func(c *gin.Context) {
 
-		var userNoPass userNoPassword
 		id := c.Param("id")
 		intID, err := strconv.Atoi(id)
 		user, err := getUserByID(intID)
@@ -232,13 +221,7 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 			c.JSON(500, gin.H{"data": nil})
 		}
 
-		userNoPass.ID = user.ID
-		userNoPass.Username = user.Username
-		userNoPass.Role = user.Role
-		userNoPass.CreatedAt = user.CreatedAt
-		userNoPass.UpdatedAt = user.UpdatedAt
-
-		c.JSON(200, gin.H{"data": userNoPass})
+		c.JSON(200, gin.H{"data": user})
 
 	})
 
