@@ -10,8 +10,6 @@ import (
 	"github.com/subosito/gotenv"
 )
 
-var dbName = "db.sqlite3"
-
 // Log is the main logger. Use this for logging
 var Log = logrus.New()
 
