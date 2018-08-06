@@ -36,6 +36,14 @@ type User struct {
 	Role      string
 }
 
+type userNoPassword struct {
+	ID        int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  string
+	Role      string
+}
+
 func createsuperuser() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 
@@ -149,8 +157,8 @@ func getAllUsers() ([]User, error) {
 	}
 	defer db.Close()
 
-	// db.Find(&users)
-	db.Select("id, username, role, created_at, updated_at").Find(&users)
+	db.Find(&users)
+	// db.Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
 	// c.JSON(200, gin.H{"data": users})
@@ -201,19 +209,44 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute := router.Group(uri)
 
 	usersRoute.GET("", func(c *gin.Context) {
+
+		var users []userNoPassword
 		allUsers, err := getAllUsers()
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
 		}
-		c.JSON(200, gin.H{"data": allUsers})
+
+		for _, user := range allUsers {
+			var userNoPass userNoPassword
+			userNoPass.ID = user.ID
+			userNoPass.Username = user.Username
+			userNoPass.Role = user.Role
+			userNoPass.CreatedAt = user.CreatedAt
+			userNoPass.UpdatedAt = user.UpdatedAt
+			users = append(users, userNoPass)
+		}
+
+		c.JSON(200, gin.H{"data": users})
+
 	})
+
 	usersRoute.GET("/:id", func(c *gin.Context) {
+
+		var userNoPass userNoPassword
 		id := c.Param("id")
 		user, err := getUserByID(id)
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
 		}
-		c.JSON(200, gin.H{"data": user})
+
+		userNoPass.ID = user.ID
+		userNoPass.Username = user.Username
+		userNoPass.Role = user.Role
+		userNoPass.CreatedAt = user.CreatedAt
+		userNoPass.UpdatedAt = user.UpdatedAt
+
+		c.JSON(200, gin.H{"data": userNoPass})
+
 	})
 
 	return usersRoute
