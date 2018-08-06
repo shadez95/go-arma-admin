@@ -148,7 +148,8 @@ func getAllUsers() ([]User, error) {
 	}
 	defer db.Close()
 
-	db.Find(&users)
+	// db.Find(&users)
+	db.Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
 	// c.JSON(200, gin.H{"data": users})
