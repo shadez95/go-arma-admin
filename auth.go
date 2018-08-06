@@ -20,7 +20,7 @@ func helloHandler(c *gin.Context) {
 	})
 }
 
-func setupAuth(r *gin.Engine) {
+func setupAuth(r *gin.Engine) jwt.GinJWTMiddleware {
 
 	Log.Debug("Setting up authentication")
 	// the jwt middleware
@@ -37,7 +37,7 @@ func setupAuth(r *gin.Engine) {
 		PayloadFunc: payload,
 	}
 
-	r.POST("/login", jwtMiddleware.LoginHandler)
+	return jwtMiddleware
 }
 
 func authenticate(userID string, password string, c *gin.Context) (string, bool) {
