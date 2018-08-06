@@ -10,7 +10,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var jwtMiddleware jwt.GinJWTMiddleware
+// the jwt middleware
+var jwtMiddleware = jwt.GinJWTMiddleware{
+	Realm: "armaadmin",
+	// store this somewhere, if your server restarts and you're
+	// generating random passwords, any valid JWTs will be invalid
+	Key:           []byte(os.Getenv("APP_SECRET")),
+	Timeout:       time.Hour,
+	MaxRefresh:    time.Hour * 24,
+	Authenticator: authenticate,
+	// this method allows you to jump in and set user information
+	// JWTs aren't encrypted, so don't store any sensitive info
+	PayloadFunc: payload,
+}
 
 func helloHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
@@ -18,26 +30,6 @@ func helloHandler(c *gin.Context) {
 		"userID": claims["id"],
 		"text":   "Hello World.",
 	})
-}
-
-func setupAuth(r *gin.Engine) jwt.GinJWTMiddleware {
-
-	Log.Debug("Setting up authentication")
-	// the jwt middleware
-	jwtMiddleware = jwt.GinJWTMiddleware{
-		Realm: "armaadmin",
-		// store this somewhere, if your server restarts and you're
-		// generating random passwords, any valid JWTs will be invalid
-		Key:           []byte(os.Getenv("APP_SECRET")),
-		Timeout:       time.Hour,
-		MaxRefresh:    time.Hour * 24,
-		Authenticator: authenticate,
-		// this method allows you to jump in and set user information
-		// JWTs aren't encrypted, so don't store any sensitive info
-		PayloadFunc: payload,
-	}
-
-	return jwtMiddleware
 }
 
 func authenticate(userID string, password string, c *gin.Context) (string, bool) {
