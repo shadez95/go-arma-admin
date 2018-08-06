@@ -138,29 +138,47 @@ func (u *User) Delete(user User) error {
 	return nil
 }
 
-func getAllUsers() ([]User, error) {
+func getAllUsers() ([]userNoPassword, error) {
 	db := openDB()
 	defer db.Close()
 
-	var users []User
-	db.Find(&users)
-	// db.Select("id, username, role, created_at, updated_at").Find(&users)
+	var users []userNoPassword
+	// db.Find(&users)
+	db.Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
 	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUserByID(id int) (User, error) {
+func getUserByID(id int) (userNoPassword, error) {
 	db := openDB()
 	defer db.Close()
 
-	var user User
+	var user userNoPassword
 	// db.Where("id = ?", intID).First(&user)
 	db.First(&user, id)
 	return user, nil
 }
 
-func findUserByUsername(username string) (User, error) {
+func findUserByUsername(username string) (userNoPassword, error) {
+	db := openDB()
+	defer db.Close()
+
+	var user userNoPassword
+	err := db.Where(&User{Username: username}).First(&user).Error
+
+	Log.WithFields(logrus.Fields{
+		"user": user,
+	}).Debug("findUserByUsername")
+
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
+}
+
+func findUserAuthenticate(username string) (User, error) {
 	db := openDB()
 	defer db.Close()
 
@@ -169,7 +187,7 @@ func findUserByUsername(username string) (User, error) {
 
 	Log.WithFields(logrus.Fields{
 		"user": user,
-	}).Debug("findUserByUsername")
+	}).Debug("findUserAuthenticate")
 
 	if err != nil {
 		return user, err

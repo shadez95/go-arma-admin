@@ -30,16 +30,16 @@ var jwtMiddleware = jwt.GinJWTMiddleware{
 	PayloadFunc: payload,
 }
 
-func authenticate(userID string, password string, c *gin.Context) (string, bool) {
+func authenticate(username string, password string, c *gin.Context) (string, bool) {
 	// it goes without saying that you'd be going to some form
 	// of persisted storage, rather than doing this
 
 	Log.WithFields(logrus.Fields{
-		"userID":   userID,
+		"username": username,
 		"password": strings.Repeat("x", len(password)),
 	}).Debug("Authenticating user...")
 
-	user, err := findUserByUsername(userID)
+	user, err := findUserAuthenticate(username)
 	if err != nil {
 		Log.Debug("User was not found")
 		return "", false
@@ -50,9 +50,9 @@ func authenticate(userID string, password string, c *gin.Context) (string, bool)
 	}).Debug("User that was retrieved")
 	pwdMatch := comparePasswords(user.Password, password)
 
-	if userID == user.Username && pwdMatch {
-		Log.Debug("Passwords matched and returning userID")
-		return userID, true
+	if username == user.Username && pwdMatch {
+		Log.Debug("Passwords matched and returning username")
+		return username, true
 	}
 
 	Log.Debug("Passwords do not match")
