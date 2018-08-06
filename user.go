@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -27,7 +28,7 @@ const (
 
 // User model
 type User struct {
-	ID        uint `gorm:"primary_key"`
+	ID        int `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Username  string
@@ -155,17 +156,23 @@ func getAllUsers() ([]User, error) {
 	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUser(id string) (*User, error) {
-	var user *User
+func getUserByID(id string) (User, error) {
+	var user User
 
 	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
-		return user, nil
+		return user, err
 	}
 	defer db.Close()
 
-	db.Where("id = ?", id).First(&user)
+	intID, err := strconv.Atoi(id)
+	if err != nil {
+		return user, err
+	}
+	fmt.Println(intID)
 
+	// db.Where("id = ?", intID).First(&user)
+	db.First(&user, intID)
 	return user, nil
 }
 
@@ -189,8 +196,8 @@ func findUserByUsername(username string) User {
 	return user
 }
 
-// SetupRoutesUser Sets up routes for user model
-func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
+// userRoutes Sets up routes for user model
+func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 	usersRoute := router.Group(uri)
 
 	usersRoute.GET("", func(c *gin.Context) {
@@ -202,7 +209,7 @@ func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
 	})
 	usersRoute.GET("/:id", func(c *gin.Context) {
 		id := c.Param("id")
-		user, err := getUser(id)
+		user, err := getUserByID(id)
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
 		}
