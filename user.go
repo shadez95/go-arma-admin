@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -87,18 +86,14 @@ func createsuperuser() (string, string) {
 
 // Create method for a User model
 func (u *User) Create(username string, password string, role string) error {
+	db := openDB()
+	defer db.Close()
 
 	Log.WithFields(logrus.Fields{
 		"username": username,
 		"password": password,
 		"role":     role,
 	}).Debug("Creating user...")
-
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
 
 	hashedPassword := hashAndSalt(password)
 
@@ -125,10 +120,7 @@ func (u *User) Create(username string, password string, role string) error {
 
 // Update method for User model
 func (u *User) Update(user User) error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.Model(&user).Update(user)
@@ -138,10 +130,7 @@ func (u *User) Update(user User) error {
 
 // Delete method for User model
 func (u *User) Delete(user User) error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.Delete(&user)
@@ -150,14 +139,10 @@ func (u *User) Delete(user User) error {
 }
 
 func getAllUsers() ([]User, error) {
-	var users []User
-
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return users, err
-	}
+	db := openDB()
 	defer db.Close()
 
+	var users []User
 	db.Find(&users)
 	// db.Select("id, username, role, created_at, updated_at").Find(&users)
 
@@ -166,36 +151,21 @@ func getAllUsers() ([]User, error) {
 }
 
 func getUserByID(id int) (User, error) {
-	var user User
-
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return user, err
-	}
+	db := openDB()
 	defer db.Close()
 
-	if err != nil {
-		return user, err
-	}
-
+	var user User
 	// db.Where("id = ?", intID).First(&user)
 	db.First(&user, id)
 	return user, nil
 }
 
 func findUserByUsername(username string) (User, error) {
-	var user User
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"username": username,
-		}).Panic("Failed to connect to database")
-		return user, nil
-	}
+	db := openDB()
 	defer db.Close()
 
-	Log.Info("About to run query...")
-	err = db.Where(&User{Username: username}).First(&user).Error
+	var user User
+	err := db.Where(&User{Username: username}).First(&user).Error
 
 	Log.WithFields(logrus.Fields{
 		"user": user,

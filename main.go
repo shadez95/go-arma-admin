@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"github.com/subosito/gotenv"
@@ -21,10 +20,7 @@ func init() {
 }
 
 func runMigrations() error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.AutoMigrate(&User{})
