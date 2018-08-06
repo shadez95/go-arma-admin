@@ -19,17 +19,15 @@ var jwtMiddleware = jwt.GinJWTMiddleware{
 	Timeout:       time.Hour,
 	MaxRefresh:    time.Hour * 24,
 	Authenticator: authenticate,
+	Unauthorized: func(c *gin.Context, code int, message string) {
+		c.JSON(code, gin.H{
+			"message": message,
+			"data":    nil,
+		})
+	},
 	// this method allows you to jump in and set user information
 	// JWTs aren't encrypted, so don't store any sensitive info
 	PayloadFunc: payload,
-}
-
-func helloHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	c.JSON(200, gin.H{
-		"userID": claims["id"],
-		"text":   "Hello World.",
-	})
 }
 
 func authenticate(userID string, password string, c *gin.Context) (string, bool) {
@@ -41,7 +39,11 @@ func authenticate(userID string, password string, c *gin.Context) (string, bool)
 		"password": strings.Repeat("x", len(password)),
 	}).Debug("Authenticating user...")
 
-	user := findUserByUsername(userID)
+	user, err := findUserByUsername(userID)
+	if err != nil {
+		Log.Debug("User was not found")
+		return "", false
+	}
 	Log.WithFields(logrus.Fields{
 		"user":          user,
 		"user.Username": user.Username,
@@ -63,8 +65,10 @@ func payload(userID string) map[string]interface{} {
 	// they've successfully logged in).  the information
 	// you set here will be available the lifetime of the
 	// user's sesion
+	user, _ := findUserByUsername(userID)
 	return map[string]interface{}{
-		"id":   "1349",
-		"role": "admin",
+		"id":       user.ID,
+		"username": user.Username,
+		"role":     user.Role,
 	}
 }

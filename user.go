@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh/terminal"
+	jwt "gopkg.in/dgrijalva/jwt-go.v3"
 )
 
 const (
@@ -164,7 +165,7 @@ func getAllUsers() ([]User, error) {
 	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUserByID(id string) (User, error) {
+func getUserByID(id int) (User, error) {
 	var user User
 
 	db, err := gorm.Open("sqlite3", dbName)
@@ -173,35 +174,38 @@ func getUserByID(id string) (User, error) {
 	}
 	defer db.Close()
 
-	intID, err := strconv.Atoi(id)
 	if err != nil {
 		return user, err
 	}
-	fmt.Println(intID)
 
 	// db.Where("id = ?", intID).First(&user)
-	db.First(&user, intID)
+	db.First(&user, id)
 	return user, nil
 }
 
-func findUserByUsername(username string) User {
+func findUserByUsername(username string) (User, error) {
+	var user User
 	db, err := gorm.Open("sqlite3", dbName)
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"username": username,
 		}).Panic("Failed to connect to database")
+		return user, nil
 	}
 	defer db.Close()
 
-	var user User
 	Log.Info("About to run query...")
-	db.Where(&User{Username: username}).First(&user)
+	err = db.Where(&User{Username: username}).First(&user).Error
 
 	Log.WithFields(logrus.Fields{
 		"user": user,
 	}).Debug("findUserByUsername")
 
-	return user
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
 
 // userRoutes Sets up routes for user model
@@ -234,7 +238,8 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 
 		var userNoPass userNoPassword
 		id := c.Param("id")
-		user, err := getUserByID(id)
+		intID, err := strconv.Atoi(id)
+		user, err := getUserByID(intID)
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
 		}
@@ -247,6 +252,23 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 
 		c.JSON(200, gin.H{"data": userNoPass})
 
+	})
+
+	router.GET("/me", func(c *gin.Context) {
+		jwtClaimsRaw, exist := c.Get("JWT_PAYLOAD")
+		if !exist {
+			c.JSON(403, gin.H{"data": "You are not authenticated yet. Please login at /login"})
+		}
+		jwtClaims := jwtClaimsRaw.(jwt.MapClaims)
+		fmt.Println("jwtClaims", jwtClaims)
+		id := jwtClaims["id"].(string)
+		user, _ := findUserByUsername(id)
+		// user, err := getUserByID(id)
+
+		// if err != nil {
+		// 	c.JSON(500, gin.H{"data": err})
+		// }
+		c.JSON(200, gin.H{"data": user})
 	})
 
 	return usersRoute
