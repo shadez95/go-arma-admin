@@ -15,6 +15,6 @@ func setupRoutes(router *gin.Engine) {
 	router.Use(jwtMiddleware.MiddlewareFunc())
 	{
 		router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
-		SetupRoutesUser(router, "/users")
+		userRoutes(router, "/users")
 	}
 }
