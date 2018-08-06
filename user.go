@@ -41,6 +41,7 @@ func createsuperuser() (string, string) {
 	fmt.Print("Enter Username: ")
 	username, _ := reader.ReadString('\n')
 	username = strings.TrimSuffix(username, "\n")
+	username = strings.TrimSuffix(username, "\r")
 
 	if username == "" {
 		fmt.Println()
@@ -91,9 +92,9 @@ func (u *User) Create(username string, password string, role string) error {
 
 	hashedPassword := hashAndSalt(password)
 
-	Log.WithFields(logrus.Fields{
-		"hashedPassword": hashedPassword,
-	}).Debug("Hashed password")
+	// Log.WithFields(logrus.Fields{
+	// 	"hashedPassword": hashedPassword,
+	// }).Debug("Hashed password")
 
 	user := &User{
 		Username: username,
@@ -101,11 +102,11 @@ func (u *User) Create(username string, password string, role string) error {
 		Role:     role,
 	}
 
-	Log.WithFields(logrus.Fields{
-		"user.Username": user.Username,
-		"user.Password": user.Password,
-		"user.Role":     user.Role,
-	}).Debug("New user information")
+	// Log.WithFields(logrus.Fields{
+	// 	"user.Username": user.Username,
+	// 	"user.Password": user.Password,
+	// 	"user.Role":     user.Role,
+	// }).Debug("New user information")
 
 	db.Create(user)
 
@@ -233,10 +234,10 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 	byteHash := []byte(hashedPwd)
 	bytePlainPwd := []byte(plainPwd)
 
-	Log.WithFields(logrus.Fields{
-		"byteHash": byteHash,
-		"plainPwd": bytePlainPwd,
-	}).Debug("Comparing hash password and plain password")
+	// Log.WithFields(logrus.Fields{
+	// 	"byteHash": byteHash,
+	// 	"plainPwd": bytePlainPwd,
+	// }).Debug("Comparing hash password and plain password")
 	err := bcrypt.CompareHashAndPassword(byteHash, bytePlainPwd)
 	if err != nil {
 		Log.Error(err)
