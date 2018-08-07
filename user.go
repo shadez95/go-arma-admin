@@ -79,30 +79,7 @@ func createsuperuser() error {
 
 	if password == passwordConfirm {
 		fmt.Println()
-		db := openDB()
-		defer db.Close()
-
-		const role = Superuser
-
-		Log.WithFields(logrus.Fields{
-			"username": username,
-			"password": password,
-			"role":     role,
-		}).Debug("Creating user...")
-
-		hashedPassword := hashAndSalt(password)
-
-		user := &User{
-			Username: username,
-			Password: hashedPassword,
-			Role:     role,
-		}
-
-		err := db.Create(user).Error
-		if err != nil {
-			return err
-		}
-
+		CreateUser(username, password, Superuser)
 		return nil
 	}
 
@@ -316,10 +293,6 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 	byteHash := []byte(hashedPwd)
 	bytePlainPwd := []byte(plainPwd)
 
-	// Log.WithFields(logrus.Fields{
-	// 	"byteHash": byteHash,
-	// 	"plainPwd": bytePlainPwd,
-	// }).Debug("Comparing hash password and plain password")
 	err := bcrypt.CompareHashAndPassword(byteHash, bytePlainPwd)
 	if err != nil {
 		Log.Error(err)
