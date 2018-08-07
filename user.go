@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh/terminal"
-	jwt "gopkg.in/dgrijalva/jwt-go.v3"
 )
 
 const (
@@ -174,7 +174,7 @@ func getUserByID(id int) (userNoPassword, error) {
 
 	var user userNoPassword
 	// db.Where("id = ?", intID).First(&user)
-	db.First(&user, id)
+	db.Table("users").First(&user, id)
 	return user, nil
 }
 
@@ -244,18 +244,15 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 	})
 
 	router.GET("/me", func(c *gin.Context) {
-		jwtClaimsRaw, exist := c.Get("JWT_PAYLOAD")
-		if !exist {
-			c.JSON(403, gin.H{"data": "You are not authenticated yet. Please login at /login"})
-		}
-		jwtClaims := jwtClaimsRaw.(jwt.MapClaims)
-		id := jwtClaims["id"].(string)
-		user, _ := findUserByUsername(id)
-		// user, err := getUserByID(id)
 
-		// if err != nil {
-		// 	c.JSON(500, gin.H{"data": err})
-		// }
+		jwtClaims := jwt.ExtractClaims(c)
+		id := jwtClaims["userID"].(float64)
+		user, err := getUserByID(int(id))
+
+		if err != nil {
+			c.JSON(500, gin.H{"data": err})
+		}
+
 		c.JSON(200, gin.H{"data": user})
 	})
 

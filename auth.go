@@ -10,6 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type userData map[string]interface{}
+
 // the jwt middleware
 var jwtMiddleware = jwt.GinJWTMiddleware{
 	Realm: "armaadmin",
@@ -59,15 +61,18 @@ func authenticate(username string, password string, c *gin.Context) (string, boo
 	return "", false
 }
 
-func payload(userID string) map[string]interface{} {
+func payload(username string) map[string]interface{} {
 	// in this method, you'd want to fetch some user info
 	// based on their email address (which is provided once
 	// they've successfully logged in).  the information
 	// you set here will be available the lifetime of the
 	// user's sesion
-	user, _ := findUserByUsername(userID)
+	user, err := findUserByUsername(username)
+	if err != nil {
+		Log.Error(err)
+	}
 	return map[string]interface{}{
-		"id":       user.ID,
+		"userID":   user.ID,
 		"username": user.Username,
 		"role":     user.Role,
 	}
