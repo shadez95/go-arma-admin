@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -31,7 +32,7 @@ type User struct {
 	ID        int `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Username  string
+	Username  string `gorm:"unique;not null"`
 	Password  string
 	Role      string
 }
@@ -44,7 +45,7 @@ type userNoPassword struct {
 	Role      string
 }
 
-func createsuperuser() (string, string) {
+func createsuperuser() error {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter Username: ")
@@ -77,15 +78,39 @@ func createsuperuser() (string, string) {
 	passwordConfirm := string(bytePasswordConfirm)
 
 	if password == passwordConfirm {
-		fmt.Println("")
-		return username, password
+		fmt.Println()
+		db := openDB()
+		defer db.Close()
+
+		const role = Superuser
+
+		Log.WithFields(logrus.Fields{
+			"username": username,
+			"password": password,
+			"role":     role,
+		}).Debug("Creating user...")
+
+		hashedPassword := hashAndSalt(password)
+
+		user := &User{
+			Username: username,
+			Password: hashedPassword,
+			Role:     role,
+		}
+
+		err := db.Create(user).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	return "", ""
+	return errors.New("Failed to create user. Passwords don't match")
 }
 
-// Create method for a User model
-func (u *User) Create(username string, password string, role string) error {
+// CreateUser creates a user model in database
+func CreateUser(username string, password string, role string) error {
 	db := openDB()
 	defer db.Close()
 
@@ -97,23 +122,16 @@ func (u *User) Create(username string, password string, role string) error {
 
 	hashedPassword := hashAndSalt(password)
 
-	// Log.WithFields(logrus.Fields{
-	// 	"hashedPassword": hashedPassword,
-	// }).Debug("Hashed password")
-
 	user := &User{
 		Username: username,
 		Password: hashedPassword,
 		Role:     role,
 	}
 
-	// Log.WithFields(logrus.Fields{
-	// 	"user.Username": user.Username,
-	// 	"user.Password": user.Password,
-	// 	"user.Role":     user.Role,
-	// }).Debug("New user information")
-
-	db.Create(user)
+	err := db.Create(user).Error
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -60,14 +60,10 @@ func main() {
 
 	} else if *superuserPtr { // Check for createsuperuser flag
 
-		username, password := createsuperuser()
-
-		Log.Info("Attempting to create user...")
-
-		var user *User
-		err := user.Create(username, password, Superuser)
+		Log.Info("Attempting to create super user...")
+		err = createsuperuser()
 		if err != nil {
-			Log.Panic("Failed to create user in database")
+			Log.Panic(err)
 		}
 		Log.Info("Superuser created successfully")
 		os.Exit(0)
