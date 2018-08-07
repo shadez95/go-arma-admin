@@ -214,12 +214,42 @@ func findUserAuthenticate(username string) (User, error) {
 	return user, nil
 }
 
+func getSelf(c *gin.Context) (*userNoPassword, error) {
+	var user userNoPassword
+	var err error
+	jwtClaims := jwt.ExtractClaims(c)
+	id := jwtClaims["userID"].(float64)
+	user, err = getUserByID(int(id))
+	if err != nil {
+		return &user, err
+	}
+	return &user, nil
+}
+
+func checkIfManager(c *gin.Context) {
+	user, err := getSelf(c)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"data":    nil,
+			"message": err,
+		})
+	}
+	if user.Role == Manager {
+		c.JSON(403, gin.H{
+			"data":    nil,
+			"message": "You are a manager and not authorized to request this information",
+		})
+	}
+}
+
 // userRoutes Sets up routes for user model
 func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
+
 	usersRoute := router.Group(uri)
 
 	usersRoute.GET("", func(c *gin.Context) {
 
+		checkIfManager(c)
 		var users []userNoPassword
 		users, err := getAllUsers()
 		if err != nil {
@@ -232,23 +262,27 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 
 	usersRoute.GET("/:id", func(c *gin.Context) {
 
+		checkIfManager(c)
 		id := c.Param("id")
 		intID, err := strconv.Atoi(id)
 		user, err := getUserByID(intID)
 		if err != nil {
-			c.JSON(500, gin.H{"data": nil})
+			c.JSON(500, gin.H{
+				"data":    nil,
+				"message": err,
+			})
 		}
 
-		c.JSON(200, gin.H{"data": user})
+		c.JSON(200, gin.H{
+			"data":    user,
+			"message": "ok",
+		})
 
 	})
 
 	router.GET("/me", func(c *gin.Context) {
 
-		jwtClaims := jwt.ExtractClaims(c)
-		id := jwtClaims["userID"].(float64)
-		user, err := getUserByID(int(id))
-
+		user, err := getSelf(c)
 		if err != nil {
 			c.JSON(500, gin.H{"data": err})
 		}
