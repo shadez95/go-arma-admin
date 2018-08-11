@@ -16,5 +16,6 @@ func setupRoutes(router *gin.Engine) {
 	{
 		router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
 		userRoutes(router, "/users")
+		armaRoutes(router, "/servers")
 	}
 }
