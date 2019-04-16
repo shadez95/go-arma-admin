@@ -52,3 +52,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/shadez95/go-arma"
+
+[[constraint]]
+  name = "gopkg.in/olahol/melody.v1"
+  version = "1.0.0"
