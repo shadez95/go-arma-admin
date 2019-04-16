@@ -12,6 +12,11 @@ import (
 
 type userData map[string]interface{}
 
+type login struct {
+	Username string `form:"username" json:"username" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
+
 // the jwt middleware
 var jwtMiddleware = jwt.GinJWTMiddleware{
 	Realm: "armaadmin",
@@ -32,9 +37,14 @@ var jwtMiddleware = jwt.GinJWTMiddleware{
 	PayloadFunc: payload,
 }
 
-func authenticate(username string, password string, c *gin.Context) (string, bool) {
-	// it goes without saying that you'd be going to some form
-	// of persisted storage, rather than doing this
+func authenticate(c *gin.Context) (interface{}, error) {
+	var loginVals login
+	if err := c.ShouldBind(&loginVals); err != nil {
+		return "", jwt.ErrMissingLoginValues
+	}
+
+	username := loginVals.Username
+	password := loginVals.Password
 
 	Log.WithFields(logrus.Fields{
 		"username": username,
@@ -44,7 +54,7 @@ func authenticate(username string, password string, c *gin.Context) (string, boo
 	user, err := findUserAuthenticate(username)
 	if err != nil {
 		Log.Debug("User was not found")
-		return "", false
+		return nil, jwt.ErrFailedAuthentication
 	}
 	Log.WithFields(logrus.Fields{
 		"user":          user,
@@ -54,26 +64,20 @@ func authenticate(username string, password string, c *gin.Context) (string, boo
 
 	if username == user.Username && pwdMatch {
 		Log.Debug("Passwords matched and returning username")
-		return username, true
+		return &user, nil
 	}
 
 	Log.Debug("Passwords do not match")
-	return "", false
+	return nil, jwt.ErrFailedAuthentication
 }
 
-func payload(username string) map[string]interface{} {
-	// in this method, you'd want to fetch some user info
-	// based on their email address (which is provided once
-	// they've successfully logged in).  the information
-	// you set here will be available the lifetime of the
-	// user's sesion
-	user, err := findUserByUsername(username)
-	if err != nil {
-		Log.Error(err)
+func payload(data interface{}) jwt.MapClaims {
+	if v, ok := data.(*userNoPassword); ok {
+		return jwt.MapClaims{
+			"id":       v.ID,
+			"username": v.Username,
+			"rold":     v.Role,
+		}
 	}
-	return map[string]interface{}{
-		"userID":   user.ID,
-		"username": user.Username,
-		"role":     user.Role,
-	}
+	return jwt.MapClaims{}
 }
