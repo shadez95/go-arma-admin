@@ -120,11 +120,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1279df5f85e7c5fa974b40e31d5b447f922f14e7bad0cc119b310cf51626e77b"
+  digest = "1:19076ae2fa398f6c05336bc1a688c1442c2d01552ebe868d79bd0de70d6f3d79"
   name = "github.com/shadez95/go-arma"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e4b53b14a2faa454d6e0f020cbd0c01cbe8f3972"
+  revision = "264a901925051deec0e5deaf2fd69e0c11b4c4dc"
 
 [[projects]]
   digest = "1:fd61cf4ae1953d55df708acb6b91492d538f49c305b364a014049914495db426"
