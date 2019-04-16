@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
@@ -29,20 +28,16 @@ const (
 
 // User model
 type User struct {
-	ID        int `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  string `gorm:"unique;not null"`
-	Password  string
-	Role      string
+	CustomGormModel
+	Username string `gorm:"unique;not null"`
+	Password string
+	Role     string
 }
 
 type userNoPassword struct {
-	ID        int
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  string
-	Role      string
+	CustomGormModel
+	Username string
+	Role     string
 }
 
 func createsuperuser() error {
