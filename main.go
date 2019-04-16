@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
@@ -36,24 +36,21 @@ func main() {
 	// Logger output to stdout
 	Log.Out = os.Stdout
 
-	// Setup port stuff
-	port, err := strconv.Atoi(os.Getenv("APP_PORT"))
-	if err != nil {
-		port = 8000
-	}
-
 	// Setup flags
-	superuserPtr := flag.Bool("createsuperuser", false, "Create a superuser\n")
-	makemigrationsPtr := flag.Bool("makemigrations", false, "Make migrations\n")
-	portPtr := flag.Int("port", port, "Set the port. Default: 8000\n")
-	logleverPtr := flag.String("loglevel", "info", "Set logging level.\nOptions: debug, info, warn, error, fatal, panic\n")
-	flag.Parse()
+	logleverPtr := flag.String("loglevel", "info", "Set logging level. Options: debug, info, warn, error, fatal, panic")
+
+	command, err := initCommands()
+	if err != nil {
+		fmt.Println()
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// Setup logging level
 	configureLogger(*logleverPtr)
 
 	// Check for migrations flag
-	if *makemigrationsPtr {
+	if command == MakeMigrationsCommand {
 
 		Log.Info("Making migrations if needed...")
 		err := runMigrations()
@@ -64,7 +61,7 @@ func main() {
 
 		os.Exit(0)
 
-	} else if *superuserPtr { // Check for createsuperuser flag
+	} else if command == CreateSuperUserCommand { // Check for createsuperuser flag
 
 		username, password := createsuperuser()
 
@@ -78,10 +75,11 @@ func main() {
 		Log.Info("Superuser created successfully")
 		os.Exit(0)
 
-	} else {
+	} else if command == RunCommand {
 
 		Log.Info("Starting server...")
 
+		// *portPtr is a var declared in commandLine.go
 		runServer(*portPtr)
 	}
 }
