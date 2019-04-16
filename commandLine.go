@@ -46,10 +46,6 @@ func initCommands() (command, error) {
 	// Setup flags for subcommands
 	portPtr = runCommand.Int("port", port, "Set the port.")
 	steamCMDptr := runCommand.String("steamcmd", steamCMD, "Set the path to the SteamCMD binary\n")
-	if len(*steamCMDptr) == 0 {
-		log.Fatal("Need steamcmd path set. Set as environment variable or set value to option. Run -h to see all options.")
-		os.Exit(1)
-	}
 
 	// Overwrite flag.Usage to print out pretty usage help
 	flag.Usage = func() {
@@ -76,24 +72,52 @@ func initCommands() (command, error) {
 	}
 
 	var commandFlags = os.Args[2:]
+
+	// Figure out which subcommand was executed and run the binary based on command
 	switch os.Args[1] {
+	// If run command was executed
 	case RunCommand.String():
 		runCommand.Usage = func() {
 			fmt.Printf("Usage: go-arma-admin run\n")
-			fmt.Println("\tPrompt user to enter username and password to create a superuser")
+			fmt.Println("\tStarts go-arma-admin server. Require steamcmd path option to be set")
 		}
 		runCommand.Parse(commandFlags)
 		if runCommand.Lookup("help") != nil || runCommand.Lookup("h") != nil {
 			runCommand.Usage()
 			os.Exit(1)
 		}
+		if len(*steamCMDptr) == 0 {
+			log.Fatal("Need steamcmd path set. Set as environment variable or set value to option. Run -h to see all options.")
+			os.Exit(1)
+		}
 		return RunCommand, nil
+
+	// If createsuperuser command was executed
 	case CreateSuperUserCommand.String():
+		createSuperUserCommand.Usage = func() {
+			fmt.Printf("Usage: go-arma-admin createsuperuser\n")
+			fmt.Println("\tPrompt user to enter username and password to create a superuser")
+		}
 		createSuperUserCommand.Parse(commandFlags)
+		if createSuperUserCommand.Lookup("help") != nil || runCommand.Lookup("h") != nil {
+			createSuperUserCommand.Usage()
+			os.Exit(1)
+		}
 		return CreateSuperUserCommand, nil
+
+	// If makemigrations command was executed
 	case MakeMigrationsCommand.String():
+		makeMigrationsCommand.Usage = func() {
+			fmt.Printf("Usage: go-arma-admin makemigrations\n")
+			fmt.Println("\tMake migrations on current databased configured in settings")
+		}
 		makeMigrationsCommand.Parse(commandFlags)
+		if makeMigrationsCommand.Lookup("help") != nil || runCommand.Lookup("h") != nil {
+			makeMigrationsCommand.Usage()
+			os.Exit(1)
+		}
 		return MakeMigrationsCommand, nil
+
 	default:
 		return "", errors.New("Not a command")
 	}
