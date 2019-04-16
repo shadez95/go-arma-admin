@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 )
@@ -40,12 +39,8 @@ func initCommands() (command, error) {
 		port = 8000
 	}
 
-	// Get SteamCMD from environment variable
-	steamCMD := os.Getenv("STEAM_CMD")
-
 	// Setup flags for subcommands
 	portPtr = runCommand.Int("port", port, "Set the port.")
-	steamCMDptr := runCommand.String("steamcmd", steamCMD, "Set the path to the SteamCMD binary\n")
 
 	// Overwrite flag.Usage to print out pretty usage help
 	flag.Usage = func() {
@@ -79,15 +74,11 @@ func initCommands() (command, error) {
 	case RunCommand.String():
 		runCommand.Usage = func() {
 			fmt.Printf("Usage: go-arma-admin run\n")
-			fmt.Println("\tStarts go-arma-admin server. Require steamcmd path option to be set")
+			fmt.Println("\tStarts go-arma-admin server. SteamCMD must be in PATH environment variable.")
 		}
 		runCommand.Parse(commandFlags)
 		if runCommand.Lookup("help") != nil || runCommand.Lookup("h") != nil {
 			runCommand.Usage()
-			os.Exit(1)
-		}
-		if len(*steamCMDptr) == 0 {
-			log.Fatal("Need steamcmd path set. Set as environment variable or set value to option. Run -h to see all options.")
 			os.Exit(1)
 		}
 		return RunCommand, nil
