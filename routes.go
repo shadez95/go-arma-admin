@@ -1,6 +1,9 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"gopkg.in/olahol/melody.v1"
+)
 
 func setupRoutes(router *gin.Engine) {
 	// Ping test
@@ -16,6 +19,13 @@ func setupRoutes(router *gin.Engine) {
 	{
 		router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
 		userRoutes(router, "/users")
-		armaRoutes(router, "/servers")
+		// armaRoutes(router, "/servers")
+
+		// mRouter is declared in mRoutes.go
+		mRouter := melody.New()
+		setupMRoutes(mRouter)
+		router.GET("/servers/ws", func(c *gin.Context) {
+			mRouter.HandleRequest(c.Writer, c.Request)
+		})
 	}
 }
