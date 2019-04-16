@@ -25,30 +25,10 @@
 #   unused-packages = true
 
 
-[[constraint]]
-  name = "github.com/gin-gonic/gin"
-  version = "1.2.0"
-
 [prune]
   go-tests = true
   unused-packages = true
 
 [[constraint]]
-  name = "github.com/jinzhu/gorm"
-  version = "1.9.1"
-
-[[constraint]]
-  name = "github.com/appleboy/gin-jwt"
-  version = "2.3.1"
-
-[[constraint]]
-  name = "github.com/subosito/gotenv"
-  version = "1.1.1"
-
-[[constraint]]
-  name = "github.com/mattn/go-sqlite3"
-  version = "1.9.0"
-
-[[constraint]]
   branch = "master"
-  name = "github.com/shadez95/go-arma"
+  name = "github.com/shadez95/gosteam"

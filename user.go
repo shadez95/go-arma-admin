@@ -2,14 +2,16 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -27,20 +29,29 @@ const (
 
 // User model
 type User struct {
-	ID        uint `gorm:"primary_key"`
+	ID        int `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Username  string
+	Username  string `gorm:"unique;not null"`
 	Password  string
 	Role      string
 }
 
-func createsuperuser() (string, string) {
+type userNoPassword struct {
+	ID        int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  string
+	Role      string
+}
+
+func createsuperuser() error {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter Username: ")
 	username, _ := reader.ReadString('\n')
 	username = strings.TrimSuffix(username, "\n")
+	username = strings.TrimSuffix(username, "\r")
 
 	if username == "" {
 		fmt.Println()
@@ -67,15 +78,18 @@ func createsuperuser() (string, string) {
 	passwordConfirm := string(bytePasswordConfirm)
 
 	if password == passwordConfirm {
-		fmt.Println("")
-		return username, password
+		fmt.Println()
+		CreateUser(username, password, Superuser)
+		return nil
 	}
 
-	return "", ""
+	return errors.New("Failed to create user. Passwords don't match")
 }
 
-// Create method for a User model
-func (u *User) Create(username string, password string, role string) error {
+// CreateUser creates a user model in database
+func CreateUser(username string, password string, role string) error {
+	db := openDB()
+	defer db.Close()
 
 	Log.WithFields(logrus.Fields{
 		"username": username,
@@ -83,17 +97,7 @@ func (u *User) Create(username string, password string, role string) error {
 		"role":     role,
 	}).Debug("Creating user...")
 
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
 	hashedPassword := hashAndSalt(password)
-
-	Log.WithFields(logrus.Fields{
-		"hashedPassword": hashedPassword,
-	}).Debug("Hashed password")
 
 	user := &User{
 		Username: username,
@@ -101,23 +105,17 @@ func (u *User) Create(username string, password string, role string) error {
 		Role:     role,
 	}
 
-	Log.WithFields(logrus.Fields{
-		"user.Username": user.Username,
-		"user.Password": user.Password,
-		"user.Role":     user.Role,
-	}).Debug("New user information")
-
-	db.Create(user)
+	err := db.Create(user).Error
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 // Update method for User model
 func (u *User) Update(user User) error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.Model(&user).Update(user)
@@ -127,10 +125,7 @@ func (u *User) Update(user User) error {
 
 // Delete method for User model
 func (u *User) Delete(user User) error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.Delete(&user)
@@ -138,72 +133,137 @@ func (u *User) Delete(user User) error {
 	return nil
 }
 
-func getAllUsers() ([]User, error) {
-	var users []User
-
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return users, err
-	}
+func getAllUsers() ([]userNoPassword, error) {
+	db := openDB()
 	defer db.Close()
 
-	db.Find(&users)
+	var users []userNoPassword
+	// db.Find(&users)
+	db.Table("users").Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
 	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUser(id string) (*User, error) {
-	var user *User
-
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return user, nil
-	}
+func getUserByID(id int) (userNoPassword, error) {
+	db := openDB()
 	defer db.Close()
 
-	db.Where("id = ?", id).First(&user)
-
+	var user userNoPassword
+	// db.Where("id = ?", intID).First(&user)
+	db.Table("users").First(&user, id)
 	return user, nil
 }
 
-func findUserByUsername(username string) User {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"username": username,
-		}).Panic("Failed to connect to database")
-	}
+func findUserByUsername(username string) (userNoPassword, error) {
+	db := openDB()
 	defer db.Close()
 
-	var user User
-	Log.Info("About to run query...")
-	db.Where(&User{Username: username}).First(&user)
+	var user userNoPassword
+	err := db.Table("users").Where(&User{Username: username}).First(&user).Error
 
 	Log.WithFields(logrus.Fields{
 		"user": user,
 	}).Debug("findUserByUsername")
 
-	return user
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
 
-// SetupRoutesUser Sets up routes for user model
-func SetupRoutesUser(router *gin.Engine, uri string) *gin.RouterGroup {
+func findUserAuthenticate(username string) (User, error) {
+	db := openDB()
+	defer db.Close()
+
+	var user User
+	err := db.Where(&User{Username: username}).First(&user).Error
+
+	Log.WithFields(logrus.Fields{
+		"user": user,
+	}).Debug("findUserAuthenticate")
+
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
+}
+
+func getSelf(c *gin.Context) (*userNoPassword, error) {
+	var user userNoPassword
+	var err error
+	jwtClaims := jwt.ExtractClaims(c)
+	id := jwtClaims["userID"].(float64)
+	user, err = getUserByID(int(id))
+	if err != nil {
+		return &user, err
+	}
+	return &user, nil
+}
+
+func checkIfManager(c *gin.Context) {
+	user, err := getSelf(c)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"data":    nil,
+			"message": err,
+		})
+	}
+	if user.Role == Manager {
+		c.JSON(403, gin.H{
+			"data":    nil,
+			"message": "You are a manager and not authorized to request this information",
+		})
+	}
+}
+
+// userRoutes Sets up routes for user model
+func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
+
 	usersRoute := router.Group(uri)
 
 	usersRoute.GET("", func(c *gin.Context) {
-		allUsers, err := getAllUsers()
+
+		checkIfManager(c)
+		var users []userNoPassword
+		users, err := getAllUsers()
 		if err != nil {
 			c.JSON(500, gin.H{"data": nil})
 		}
-		c.JSON(200, gin.H{"data": allUsers})
+
+		c.JSON(200, gin.H{"data": users})
+
 	})
+
 	usersRoute.GET("/:id", func(c *gin.Context) {
+
+		checkIfManager(c)
 		id := c.Param("id")
-		user, err := getUser(id)
+		intID, err := strconv.Atoi(id)
+		user, err := getUserByID(intID)
 		if err != nil {
-			c.JSON(500, gin.H{"data": nil})
+			c.JSON(500, gin.H{
+				"data":    nil,
+				"message": err,
+			})
 		}
+
+		c.JSON(200, gin.H{
+			"data":    user,
+			"message": "ok",
+		})
+
+	})
+
+	router.GET("/me", func(c *gin.Context) {
+
+		user, err := getSelf(c)
+		if err != nil {
+			c.JSON(500, gin.H{"data": err})
+		}
+
 		c.JSON(200, gin.H{"data": user})
 	})
 
@@ -233,10 +293,6 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 	byteHash := []byte(hashedPwd)
 	bytePlainPwd := []byte(plainPwd)
 
-	Log.WithFields(logrus.Fields{
-		"byteHash": byteHash,
-		"plainPwd": bytePlainPwd,
-	}).Debug("Comparing hash password and plain password")
 	err := bcrypt.CompareHashAndPassword(byteHash, bytePlainPwd)
 	if err != nil {
 		Log.Error(err)

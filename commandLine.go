@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 )
@@ -33,14 +34,22 @@ func initCommands() (command, error) {
 
 	flag.Parse()
 
-	// Setup port stuff
+	// Attempt to get port from environment variable, if not default to 8000
 	port, err := strconv.Atoi(os.Getenv("APP_PORT"))
 	if err != nil {
 		port = 8000
 	}
 
+	// Get SteamCMD from environment variable
+	steamCMD := os.Getenv("STEAM_CMD")
+
 	// Setup flags for subcommands
 	portPtr = runCommand.Int("port", port, "Set the port.")
+	steamCMDptr := runCommand.String("steamcmd", steamCMD, "Set the path to the SteamCMD binary\n")
+	if len(*steamCMDptr) == 0 {
+		log.Fatal("Need steamcmd path set. Set as environment variable or set value to option. Run -h to see all options.")
+		os.Exit(1)
+	}
 
 	// Overwrite flag.Usage to print out pretty usage help
 	flag.Usage = func() {

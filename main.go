@@ -4,14 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
-	"github.com/jinzhu/gorm"
+	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 	"github.com/subosito/gotenv"
 )
-
-var dbName = "db.sqlite3"
 
 // Log is the main logger. Use this for logging
 var Log = logrus.New()
@@ -21,15 +21,20 @@ func init() {
 }
 
 func runMigrations() error {
-	db, err := gorm.Open("sqlite3", dbName)
-	if err != nil {
-		return err
-	}
+	db := openDB()
 	defer db.Close()
 
 	db.AutoMigrate(&User{})
 
 	return nil
+}
+
+func runServer(portPtr int) {
+	router := gin.Default()
+	setupRoutes(router)
+	port := strings.Join([]string{":", strconv.Itoa(portPtr)}, "")
+	// Listen and Server in 0.0.0.0:8080
+	router.Run(port)
 }
 
 func main() {
@@ -63,20 +68,15 @@ func main() {
 
 	} else if command == CreateSuperUserCommand { // Check for createsuperuser flag
 
-		username, password := createsuperuser()
-
-		Log.Info("Attempting to create user...")
-
-		var user *User
-		err := user.Create(username, password, Superuser)
+		Log.Info("Attempting to create super user...")
+		err = createsuperuser()
 		if err != nil {
-			Log.Panic("Failed to create user in database")
+			Log.Panic(err)
 		}
 		Log.Info("Superuser created successfully")
 		os.Exit(0)
 
 	} else if command == RunCommand {
-
 		Log.Info("Starting server...")
 
 		// *portPtr is a var declared in commandLine.go
