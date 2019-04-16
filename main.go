@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -41,21 +40,18 @@ func main() {
 	// Logger output to stdout
 	Log.Out = os.Stdout
 
-	// Setup flags
-	logleverPtr := flag.String("loglevel", "info", "Set logging level. Options: debug, info, warn, error, fatal, panic")
-
-	command, err := initCommands()
+	subcommand, err := initCommands()
 	if err != nil {
 		fmt.Println()
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// Setup logging level
-	configureLogger(*logleverPtr)
+	// Display log level output
+	fmt.Println("Log level output: ", Log.GetLevel())
 
 	// Check for migrations flag
-	if command == MakeMigrationsCommand {
+	if subcommand == "makemigrations" {
 
 		Log.Info("Making migrations if needed...")
 		err := runMigrations()
@@ -66,7 +62,7 @@ func main() {
 
 		os.Exit(0)
 
-	} else if command == CreateSuperUserCommand { // Check for createsuperuser flag
+	} else if subcommand == "createsuperuser" { // Check for createsuperuser flag
 
 		Log.Info("Attempting to create super user...")
 		err = createsuperuser()
@@ -76,7 +72,7 @@ func main() {
 		Log.Info("Superuser created successfully")
 		os.Exit(0)
 
-	} else if command == RunCommand {
+	} else if subcommand == "run" {
 		Log.Info("Starting server...")
 
 		// *portPtr is a var declared in commandLine.go
