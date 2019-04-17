@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
@@ -30,14 +31,29 @@ const (
 type User struct {
 	CustomGormModel
 	Username string `gorm:"unique;not null"`
-	Password string
+	Password []byte
 	Role     string
 }
 
 type userNoPassword struct {
-	CustomGormModel
-	Username string
-	Role     string
+	ID        int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  string
+	Role      string
+}
+
+var user *User
+
+// UserNoPassword is a help function that removes password stored in DB
+func (u *User) UserNoPassword() userNoPassword {
+	return userNoPassword{
+		ID:        u.ID,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+		Username:  u.Username,
+		Role:      u.Role,
+	}
 }
 
 func createsuperuser() error {
@@ -96,7 +112,7 @@ func CreateUser(username string, password string, role string) error {
 
 	user := &User{
 		Username: username,
-		Password: hashedPassword,
+		Password: []byte(hashedPassword),
 		Role:     role,
 	}
 
@@ -137,24 +153,28 @@ func getAllUsers() ([]userNoPassword, error) {
 	db.Table("users").Select("id, username, role, created_at, updated_at").Find(&users)
 
 	return users, nil
-	// c.JSON(200, gin.H{"data": users})
 }
 
-func getUserByID(id int) (userNoPassword, error) {
+func getUserByID(id int) (*User, error) {
 	db := openDB()
 	defer db.Close()
 
-	var user userNoPassword
-	// db.Where("id = ?", intID).First(&user)
-	db.Table("users").First(&user, id)
-	return user, nil
+	var user User
+	err := db.First(&user, id).RecordNotFound()
+	Log.WithField("user", user).Debug("Getting user by id")
+	Log.WithField("&user", &user).Debug("Getting user by id")
+	if err {
+		Log.Warn(err)
+	}
+
+	return &user, nil
 }
 
-func findUserByUsername(username string) (userNoPassword, error) {
+func findUserByUsername(username string) (*User, error) {
 	db := openDB()
 	defer db.Close()
 
-	var user userNoPassword
+	var user User
 	err := db.Table("users").Where(&User{Username: username}).First(&user).Error
 
 	Log.WithFields(logrus.Fields{
@@ -162,10 +182,10 @@ func findUserByUsername(username string) (userNoPassword, error) {
 	}).Debug("findUserByUsername")
 
 	if err != nil {
-		return user, err
+		return &user, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func findUserAuthenticate(username string) (User, error) {
@@ -186,16 +206,17 @@ func findUserAuthenticate(username string) (User, error) {
 	return user, nil
 }
 
-func getSelf(c *gin.Context) (*userNoPassword, error) {
-	var user userNoPassword
+func getSelf(c *gin.Context) (*User, error) {
 	var err error
 	jwtClaims := jwt.ExtractClaims(c)
-	id := jwtClaims["userID"].(float64)
-	user, err = getUserByID(int(id))
+	id := int(jwtClaims["id"].(float64))
+	Log.WithField("id", id).Debug("Getting myself")
+	user, err = getUserByID(id)
 	if err != nil {
-		return &user, err
+		Log.Warn(err)
+		return user, err
 	}
-	return &user, nil
+	return user, nil
 }
 
 func checkIfManager(c *gin.Context) {
@@ -246,7 +267,7 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 		}
 
 		c.JSON(200, gin.H{
-			"data":    user,
+			"data":    user.UserNoPassword(),
 			"message": "ok",
 		})
 
@@ -259,7 +280,8 @@ func userRoutes(router *gin.Engine, uri string) *gin.RouterGroup {
 			c.JSON(500, gin.H{"data": err})
 		}
 
-		c.JSON(200, gin.H{"data": user})
+		fmt.Println(user.UserNoPassword())
+		c.JSON(200, gin.H{"data": user.UserNoPassword()})
 	})
 
 	return usersRoute

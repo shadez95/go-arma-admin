@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type userData map[string]interface{}
+// DO NOT CHANGE
+// Reference: https://github.com/appleboy/gin-jwt/issues/170
+var identityKey = "id"
 
 type login struct {
 	Username string `form:"username" json:"username" binding:"required"`
@@ -18,28 +20,34 @@ type login struct {
 }
 
 // the jwt middleware
-var jwtMiddleware = jwt.GinJWTMiddleware{
+var jwtMiddleware = &jwt.GinJWTMiddleware{
 	Realm: "armaadmin",
 	// store this somewhere, if your server restarts and you're
 	// generating random passwords, any valid JWTs will be invalid
-	Key:           []byte(os.Getenv("APP_SECRET")),
-	Timeout:       time.Hour,
-	MaxRefresh:    time.Hour * 24,
-	Authenticator: authenticate,
-	Unauthorized: func(c *gin.Context, code int, message string) {
-		c.JSON(code, gin.H{
-			"message": message,
-			"data":    nil,
-		})
-	},
+	Key:             []byte(os.Getenv("APP_SECRET")),
+	Timeout:         time.Hour,
+	MaxRefresh:      time.Hour * 24,
+	IdentityKey:     identityKey,
+	IdentityHandler: idHandler,
+	Authenticator:   authenticate,
 	// this method allows you to jump in and set user information
 	// JWTs aren't encrypted, so don't store any sensitive info
-	PayloadFunc: payload,
+	PayloadFunc:      payload,
+	SigningAlgorithm: "HS256",
+}
+
+func idHandler(c *gin.Context) interface{} {
+	Log.Debug("IdentityHandler executing")
+	claims := jwt.ExtractClaims(c)
+	var user User
+	user.ID = int(claims["id"].(float64))
+	return &user
 }
 
 func authenticate(c *gin.Context) (interface{}, error) {
 	var loginVals login
-	if err := c.ShouldBind(&loginVals); err != nil {
+	err := c.ShouldBind(&loginVals)
+	if err != nil {
 		return "", jwt.ErrMissingLoginValues
 	}
 
@@ -60,11 +68,12 @@ func authenticate(c *gin.Context) (interface{}, error) {
 		"user":          user,
 		"user.Username": user.Username,
 	}).Debug("User that was retrieved")
-	pwdMatch := comparePasswords(user.Password, password)
+	pwdMatch := comparePasswords(string(user.Password), password)
 
 	if username == user.Username && pwdMatch {
 		Log.Debug("Passwords matched and returning username")
-		return &user, nil
+		Log.Debug(user)
+		return user, nil
 	}
 
 	Log.Debug("Passwords do not match")
@@ -72,12 +81,14 @@ func authenticate(c *gin.Context) (interface{}, error) {
 }
 
 func payload(data interface{}) jwt.MapClaims {
-	if v, ok := data.(*userNoPassword); ok {
+	Log.Debug("Deploying payload")
+	if v, ok := data.(User); ok {
 		return jwt.MapClaims{
-			"id":       v.ID,
-			"username": v.Username,
-			"rold":     v.Role,
+			"username":  v.Username,
+			"role":      v.Role,
+			identityKey: v.ID,
 		}
 	}
-	return jwt.MapClaims{}
+	Log.Warn("User data returned is corrupted")
+	return jwt.MapClaims{"error": true}
 }
