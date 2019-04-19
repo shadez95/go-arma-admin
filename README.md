@@ -1,6 +1,6 @@
 # go-arma-admin
 
-A RESTful web service that allows control and management of ARMA servers over the internet.
+A web service for controlling and managing ARMA servers through a web API
 
 ## Status
 
