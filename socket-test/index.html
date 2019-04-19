@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Websocket Test</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css"
+        integrity="sha256-8B1OaG0zT7uYA572S2xOxWACq9NXYPQ+U5kHPV1bJN4=" crossorigin="anonymous" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script src="socket.js"></script>
+</head>
+
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title is-1 has-text-light">
+                Websocket Tester
+            </h1>
+
+            <div class="tags has-addons">
+                <span class="tag is-dark">Status</span>
+                <span id="status" class="tag is-danger">Unknown</span>
+            </div>
+
+            <div class="field is-grouped">
+                <div class="control">
+                    <button id="open-socket" class="button is-success">Open Socket</button>
+                </div>
+                <div class="control">
+                    <button id="close-socket" class="button is-danger">Close Socket</button>
+                </div>
+            </div>
+
+            <div class="field">
+                <input id="socket-url-input" class="input" type="text" placeholder="Websocket URL">
+            </div>
+
+            <h3 class="title is-size-3 has-text-light">
+                Enter Websocket message:
+            </h3>
+            <form>
+                <div class="field">
+                    <textarea id="message-input" class="textarea" placeholder="e.g. Hello world"></textarea>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <input class="button is-link" type="submit" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+    <section class="section" style="flex-grow: 1;">
+        <div class="container" style="height: 100%;">
+            <!-- message data will from the websocket will go inside text area -->
+            <textarea id="message-output" class="textarea" readonly></textarea>
+        </div>
+    </section>
+</body>
+
+</html>
