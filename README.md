@@ -1,6 +1,6 @@
 # go-arma-admin
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/shadez95/go-arma-admin)](https://goreportcard.com/report/github.com/shadez95/go-arma-admin)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shadez95/go-arma-admin)](https://goreportcard.com/report/github.com/shadez95/go-arma-admin) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 A web service for controlling and managing ARMA servers through a web API. The web API consists of RESTful API endpoints and websockets to manage users and ARMA servers.
 
