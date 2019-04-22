@@ -28,9 +28,7 @@ func setupRoutes(router *gin.Engine) {
 	router.Use(jwtMiddleware.MiddlewareFunc())
 	{
 		// Ticket system for connecting to websocket server
-		router.GET("/wsTicket", func(c *gin.Context) {
-			// Issue API key here for websocket connection
-		})
+		router.GET("/wsTicket", wsTicketHandler)
 		router.GET("/refreshToken", jwtMiddleware.RefreshHandler)
 		userRoutes(router, "/users")
 	}
