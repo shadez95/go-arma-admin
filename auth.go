@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"strings"
 	"time"
 
@@ -24,7 +23,7 @@ var jwtMiddleware = &jwt.GinJWTMiddleware{
 	Realm: "armaadmin",
 	// store this somewhere, if your server restarts and you're
 	// generating random passwords, any valid JWTs will be invalid
-	Key:             []byte(os.Getenv("APP_SECRET")),
+	Key:             []byte(AppSecret),
 	Timeout:         time.Hour,
 	MaxRefresh:      time.Hour * 24,
 	IdentityKey:     identityKey,

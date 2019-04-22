@@ -15,8 +15,13 @@ import (
 // Log is the main logger. Use this for logging
 var Log = logrus.New()
 
+// AppSecret is the variable that is used for encryption
+// and is set through an environment variable
+var AppSecret string
+
 func init() {
 	gotenv.Load()
+	AppSecret = os.Getenv("APP_SECRET")
 }
 
 func runMigrations() error {
