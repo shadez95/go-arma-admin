@@ -17,6 +17,13 @@ func setupRoutes(router *gin.Engine) {
 
 	// mRouter is declared in mRoutes.go
 	socketRouter := melody.New()
+
+	// Going to probably need below in the future to verify origin sources
+	// could be customizable through environment variable
+	// Reference: https://github.com/olahol/melody#faq
+	// socketRouter.Upgrader.CheckOrigin = func(req *http.Request) bool {
+
+	// }
 	setupWebsocketRoute(socketRouter)
 
 	// Websocket server
