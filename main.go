@@ -19,6 +19,11 @@ var Log = logrus.New()
 // and is set through an environment variable
 var AppSecret string
 
+// TempSecretKey is a secret key that is created on every
+// start and can be used for temporary encryption for the
+// life of the server
+var TempSecretKey *[32]byte
+
 func init() {
 	gotenv.Load()
 	AppSecret = os.Getenv("APP_SECRET")

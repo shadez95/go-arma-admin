@@ -16,12 +16,12 @@ func setupRoutes(router *gin.Engine) {
 	router.POST("/login", authMiddleware.LoginHandler)
 
 	// mRouter is declared in mRoutes.go
-	mRouter := melody.New()
-	setupMRoutes(mRouter)
+	socketRouter := melody.New()
+	setupWebsocketRoute(socketRouter)
 
 	// Websocket server
 	router.GET("/servers/ws", func(c *gin.Context) {
-		mRouter.HandleRequest(c.Writer, c.Request)
+		socketRouter.HandleRequest(c.Writer, c.Request)
 	})
 
 	// Auth required routes
