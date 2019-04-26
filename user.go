@@ -29,10 +29,12 @@ const (
 
 // User model
 type User struct {
-	CustomGormModel
-	Username string `gorm:"unique;not null"`
-	Password []byte
-	Role     int
+	ID        int       `gorm:"primary_key"`
+	CreatedAt time.Time `gorm:"column:createdAt"`
+	UpdatedAt time.Time `gorm:"column:updatedAt"`
+	Username  string    `gorm:"unique;not null"`
+	Password  []byte
+	Role      int
 }
 
 type userNoPassword struct {

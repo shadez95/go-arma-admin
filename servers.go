@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shadez95/go-arma"
@@ -22,9 +23,11 @@ type Status string
 
 // Server type represents a server
 type Server struct {
-	CustomGormModel
-	Name   string `gorm:"unique;not null"`
-	Status Status
+	ID        int       `gorm:"primary_key"`
+	CreatedAt time.Time `gorm:"column:createdAt"`
+	UpdatedAt time.Time `gorm:"column:updatedAt"`
+	Name      string    `gorm:"unique;not null"`
+	Status    Status
 	arma.Server
 }
 
