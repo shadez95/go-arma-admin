@@ -1,8 +1,11 @@
 package main
 
 import (
+	"net/http"
+
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/olahol/melody.v1"
 )
 
@@ -21,9 +24,14 @@ func setupRoutes(router *gin.Engine) {
 	// Going to probably need below in the future to verify origin sources
 	// could be customizable through environment variable
 	// Reference: https://github.com/olahol/melody#faq
-	// socketRouter.Upgrader.CheckOrigin = func(req *http.Request) bool {
-
-	// }
+	socketRouter.Upgrader.CheckOrigin = func(req *http.Request) bool {
+		if Log.Level == logrus.DebugLevel {
+			Log.Debug("CheckOrigin is true")
+			return true
+		}
+		Log.Debug("CheckOrigin is false")
+		return false
+	}
 	setupWebsocketRoute(socketRouter)
 
 	// Websocket server
