@@ -20,11 +20,11 @@ import (
 
 const (
 	// Superuser is above admin
-	Superuser = "SUPERUSER"
+	Superuser = 0
 	// Admin is below superuser and controls everything
-	Admin = "ADMIN"
+	Admin = 1
 	// Manager is below admin and is managed by admins or superusers
-	Manager = "MANAGER"
+	Manager = 2
 )
 
 // User model
@@ -32,7 +32,7 @@ type User struct {
 	CustomGormModel
 	Username string `gorm:"unique;not null"`
 	Password []byte
-	Role     string
+	Role     int
 }
 
 type userNoPassword struct {
@@ -40,7 +40,7 @@ type userNoPassword struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Username  string
-	Role      string
+	Role      int
 }
 
 var user *User
@@ -98,7 +98,7 @@ func createsuperuser() error {
 }
 
 // CreateUser creates a user model in database
-func CreateUser(username string, password string, role string) error {
+func CreateUser(username string, password string, role int) error {
 	db := openDB()
 	defer db.Close()
 
@@ -150,7 +150,11 @@ func getAllUsers() ([]userNoPassword, error) {
 
 	var users []userNoPassword
 	// db.Find(&users)
-	db.Table("users").Select("id, username, role, created_at, updated_at").Find(&users)
+	// db.Find(&users)
+	err := db.Table("users").Select("id, username, role, createdAt, updatedAt").Find(&users).Error
+	if err != nil {
+		Log.Error(err)
+	}
 
 	return users, nil
 }
@@ -219,6 +223,7 @@ func getSelf(c *gin.Context) (*User, error) {
 	return user, nil
 }
 
+// checkIfManager checks to see if user has role manager
 func checkIfManager(c *gin.Context) {
 	user, err := getSelf(c)
 	if err != nil {
