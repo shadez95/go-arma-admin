@@ -45,7 +45,7 @@ type userNoPassword struct {
 
 var user *User
 
-// UserNoPassword is a help function that removes password stored in DB
+// UserNoPassword is a helper method that removes password stored in DB
 func (u *User) UserNoPassword() userNoPassword {
 	return userNoPassword{
 		ID:        u.ID,
