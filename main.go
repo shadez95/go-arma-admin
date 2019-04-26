@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/subosito/gotenv"
 )
@@ -24,9 +25,40 @@ var AppSecret string
 // life of the server
 var TempSecretKey *[32]byte
 
+var homePath string
+
 func init() {
 	gotenv.Load()
 	AppSecret = os.Getenv("APP_SECRET")
+
+	// Get HOME path
+	homePath, err := homedir.Dir()
+	if err != nil {
+		Log.Panic(err)
+	}
+	Log.WithField("HOME", homePath).Debug("HOME path in init()")
+
+	folder := strings.Join([]string{homePath, ".arma-admin"}, "/")
+	folderExists, err := pathExists(folder)
+	if err != nil {
+		Log.Panic(err)
+	}
+
+	if !folderExists {
+		os.Mkdir(folder, os.ModePerm)
+	}
+}
+
+// pathExists returns whether the given file or directory exists
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
 
 func runMigrations() error {
